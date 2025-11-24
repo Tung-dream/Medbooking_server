@@ -72,7 +72,7 @@ class UserManagementController extends Controller
             'Role' => 'required|string|in:BenhNhan,BacSi,NhanVien,QuanTriVien',
             'Status' => 'required|string|in:HoatDong,Khoa', // (Khóa)
         ]);
-
+        
         // Cập nhật
         $user->update($request->only([
             'FullName', 
