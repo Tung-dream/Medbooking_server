@@ -164,6 +164,7 @@ class AuthController extends Controller
             // Validate Email & Phone: Unique nhưng bỏ qua chính mình
             'Email' => ['nullable', 'email', \Illuminate\Validation\Rule::unique('users')->ignore($user->UserID, 'UserID')],
             'PhoneNumber' => ['required', 'string', \Illuminate\Validation\Rule::unique('users')->ignore($user->UserID, 'UserID')],
+            // 'avatar_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         // Cập nhật (chỉ các trường cho phép)

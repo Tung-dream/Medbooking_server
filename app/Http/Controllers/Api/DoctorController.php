@@ -47,17 +47,23 @@ class DoctorController extends Controller
      * Lấy danh sách các slot khả dụng của bác sĩ theo ID.
      * Chạy khi gọi GET /api/doctors/{id}/availability
      */
-    public function getAvailability($id) //tu lay id tu url
+    public function getAvailability(Request $request, $id)
     {
-        // 3. Lấy các slot, nhưng có 2 ĐIỀU KIỆN LỌC (filter)
-        $availableSlots = Doctor::findOrFail($id) // Tìm Bác sĩ có ID này
-            ->availabilitySlots() // Lấy các slot qua Mối quan hệ
-            ->where('Status', '=', 'Available') // ĐK 1: Chỉ lấy slot "Còn trống"
-            ->where('StartTime', '>', Carbon::now()) // ĐK 2: Chỉ lấy slot trong tương lai
-            ->orderBy('StartTime', 'asc') // Sắp xếp (sớm nhất lên đầu)
-            ->get();
+        $date = $request->input('date');
 
-        // 4. Trả về JSON
+        $query = Doctor::findOrFail($id)
+            ->availabilitySlots()
+            ->where('Status', '=', 'Available') // Chỉ lấy slot trống
+            ->where('StartTime', '>', Carbon::now()); // Chỉ lấy tương lai
+
+        //Nếu khách có chọn ngày, thì chỉ lấy slot ngày đó
+        if ($date) {
+            $query->whereDate('StartTime', $date);
+        }
+
+        //Sắp xếp và lấy dữ liệu mới nhất lên đầu, còn cũ nhất là desc
+        $availableSlots = $query->orderBy('StartTime', 'asc')->get();
+
         return response()->json($availableSlots, 200, [], JSON_UNESCAPED_UNICODE);
     }
     // public function getSpecialtyAvailability($id)

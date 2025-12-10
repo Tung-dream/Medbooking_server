@@ -94,7 +94,7 @@ Route::get('/doctors', [DoctorController::class, 'index']);
 // Nó sẽ chạy hàm 'getAvailability' trong DoctorController
 Route::get('/doctors/{id}/availability', [DoctorController::class, 'getAvailability']);
 
-// === THÊM ROUTE MỚI CỦA BẠN VÀO ĐÂY ===
+
 // {id} là "tham số"
 // Nó sẽ chạy hàm 'show' trong DoctorController
 // 'show' là tên quy ước của Laravel cho "hiển thị 1 cái"
@@ -103,10 +103,11 @@ Route::get('/doctors/{id}', [DoctorController::class, 'show']);
 // URL: GET /api/specialties/{id}/availability
 Route::get('/specialties/{id}/availability', [SpecialtyController::class, 'getAvailability']);
 
-// ... các route public khác ...
 Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/specialties/{id}', [SpecialtyController::class, 'show']);
+//Gọi ra 3 feedbacks tốt nhất dựa theo số sao
+Route::get('/top-feedbacks', [FeedbackController::class, 'getTopFeedbacks']);
 ///===Nhom 3 :cac route cua bac si(dotor) 
 //2 lop bao ve 
 //1. auth:sanctum
