@@ -43,7 +43,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    //Tự gọi bác sĩ của mình
+    Route::get('/my-doctors', [AppointmentController::class, 'getMyDoctors']);
     // Trong nhóm Patient
+<<<<<<< HEAD
+=======
+    Route::post('/system-feedback', [AppointmentController::class, 'submitSystemFeedback']);
+>>>>>>> 0e036fa0f70cbb18cde2aaaa24cf8e08f84a1b95
     Route::post('/appointments/{id}/feedback', [AppointmentController::class, 'submitFeedback']);
     // Trong nhóm Patient
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
@@ -67,6 +73,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // (Chúng ta sẽ dùng AuthController cho tiện)
     Route::post('/user/upload-avatar', [AuthController::class, 'uploadAvatar']);
 
+<<<<<<< HEAD
+=======
+    //Quản lí gia đình
+    Route::get('user/family-members', [AuthController::class, 'getFamilyMembers']);
+    Route::post('/user/family-members', [AuthController::class, 'addFamilyMembers']);
+    Route::delete('user/family-members/{id}', [AuthController::class, 'removeFamilyMember']);
+    Route::get('/users/search-public', [AuthController::class, 'searchUserPublic']);
+>>>>>>> 0e036fa0f70cbb18cde2aaaa24cf8e08f84a1b95
 });
 
 // --- CÁC ROUTE KHÔNG BẢO VỆ (Ai cũng có thể gọi được) ---
@@ -86,7 +100,7 @@ Route::get('/doctors', [DoctorController::class, 'index']);
 // Nó sẽ chạy hàm 'getAvailability' trong DoctorController
 Route::get('/doctors/{id}/availability', [DoctorController::class, 'getAvailability']);
 
-// === THÊM ROUTE MỚI CỦA BẠN VÀO ĐÂY ===
+
 // {id} là "tham số"
 // Nó sẽ chạy hàm 'show' trong DoctorController
 // 'show' là tên quy ước của Laravel cho "hiển thị 1 cái"
@@ -95,10 +109,15 @@ Route::get('/doctors/{id}', [DoctorController::class, 'show']);
 // URL: GET /api/specialties/{id}/availability
 Route::get('/specialties/{id}/availability', [SpecialtyController::class, 'getAvailability']);
 
+<<<<<<< HEAD
 // ... các route public khác ...
+=======
+>>>>>>> 0e036fa0f70cbb18cde2aaaa24cf8e08f84a1b95
 Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/specialties/{id}', [SpecialtyController::class, 'show']);
+//Gọi ra 3 feedbacks tốt nhất dựa theo số sao
+Route::get('/top-feedbacks', [FeedbackController::class, 'getTopFeedbacks']);
 ///===Nhom 3 :cac route cua bac si(dotor) 
 //2 lop bao ve 
 //1. auth:sanctum
@@ -143,6 +162,10 @@ Route::middleware(['auth:sanctum', 'role:BacSi'])->prefix('doctor')->group(funct
     // API Bác sĩ Sửa bệnh án
     // URL: PUT /api/doctor/medical-records/{id}
     Route::put('/medical-records/{id}', [MedicalRecordController::class, 'update']);
+    //API cập nhật trạng thái (Bắt đầu khám -> Hoàn tất)
+    Route::put('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
+    //API xem danh sách Slot rảnh của chính bác sĩ đó
+    Route::get('/my-slots', [DoctorAvailabilityController::class, 'index']);
 });
 
 //nhom4 admin
@@ -173,7 +196,11 @@ Route::middleware(['auth:sanctum', 'role:QuanTriVien,NhanVien'])->prefix('admin'
     // === QUẢN LÝ THÔNG BÁO ===
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/send', [NotificationController::class, 'send']);
+    // Route cho bệnh nhân xem kết quả
+    Route::get('/appointments/{id}/medical-record', [AppointmentController::class, 'getMedicalRecord']);
 
+    // Route cho bác sĩ đặt lịch tái khám
+    Route::post('/doctor/appointments/follow-up', [AppointmentController::class, 'createFollowUp']);
     // === API QUẢN LÝ TÀI KHOẢN (MỚI) ===
     // (Chúng ta dùng 'Resource' để tạo nhanh bộ CRUD)
     // Nó sẽ tự động tạo:

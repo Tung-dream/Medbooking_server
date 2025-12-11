@@ -27,13 +27,13 @@ class DoctorManagementController extends Controller
             'Username' => 'required|string|max:100|unique:users',
             'PhoneNumber' => 'required|string|max:15|unique:users',
             'password' => 'required|string|min:6',
-            
+
             // Dữ liệu cho bảng Doctor
             'SpecialtyID' => 'required|integer|exists:specialties,SpecialtyID',
             'Degree' => 'required|string|max:100',
             'YearsOfExperience' => 'required|integer|min:0',
             'ProfileDescription' => 'nullable|string',
-            'imageURL' => 'nullable|string|max:500',
+            'imageURL' => 'nullable|image|max:10240',
         ]);
 
         // 2. Bắt đầu Transaction
@@ -84,7 +84,6 @@ class DoctorManagementController extends Controller
     public function update(Request $request, $id)
     {
         // 1. Tìm Bác sĩ (DoctorID) và User liên quan
-        // findOrFail sẽ tự động 404 nếu không tìm thấy $id
         $doctor = Doctor::findOrFail($id);
         $user = $doctor->user; // Lấy user qua mối quan hệ
 
@@ -96,9 +95,6 @@ class DoctorManagementController extends Controller
                 'required',
                 'string',
                 'max:100',
-                // Luật 'unique' (duy nhất) đặc biệt:
-                // "Phải là unique trong bảng 'users', NGOẠI TRỪ (ignore)
-                // user có UserID là $user->UserID"
                 Rule::unique('users')->ignore($user->UserID, 'UserID')
             ],
             'PhoneNumber' => [
@@ -107,13 +103,18 @@ class DoctorManagementController extends Controller
                 'max:15',
                 Rule::unique('users')->ignore($user->UserID, 'UserID')
             ],
-            
+            'Email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'Email')->ignore($user->UserID, 'UserID')
+            ],
+
             // Dữ liệu cho bảng Doctor
             'SpecialtyID' => 'required|integer|exists:specialties,SpecialtyID',
             'Degree' => 'required|string|max:100',
             'YearsOfExperience' => 'required|integer|min:0',
             'ProfileDescription' => 'nullable|string',
-            'imageURL' => 'nullable|string|max:500',
+            'imageURL' => 'nullable',
         ]);
 
         // 3. Bắt đầu Transaction (vì cập nhật 2 bảng)
@@ -124,20 +125,45 @@ class DoctorManagementController extends Controller
             $user->FullName = $request->FullName;
             $user->Username = $request->Username;
             $user->PhoneNumber = $request->PhoneNumber;
+            $user->Email = $request->Email;
+
+            if ($request->filled('password')) {
+                $user->password = Hash::make($request->password);
+            }
+
+            if ($request->has('Status')) {
+                $user->Status = $request->Status;
+            }
+
             $user->save();
 
-            // 5. Cập nhật bảng Doctor
             $doctor->SpecialtyID = $request->SpecialtyID;
             $doctor->Degree = $request->Degree;
             $doctor->YearsOfExperience = $request->YearsOfExperience;
             $doctor->ProfileDescription = $request->ProfileDescription;
-            $doctor->imageURL = $request->imageURL;
+
+            if ($request->hasFile('imageURL')) {
+
+                // Validate file ảnh
+                $request->validate([
+                    'imageURL' => 'image|mimes:jpeg,png,jpg,gif|max:10240'
+                ]);
+
+                // Xóa ảnh cũ nếu có và file tồn tại
+                if ($doctor->imageURL && Storage::disk('public')->exists($doctor->imageURL)) {
+                    Storage::disk('public')->delete($doctor->imageURL);
+                }
+
+                // Lưu ảnh mới vào 'storage/app/public/uploads/doctors'
+                $path = $request->file('imageURL')->store('uploads/doctors', 'public');
+
+                $doctor->imageURL = $path;
+            }
+
             $doctor->save();
 
-            // 6. Hoàn tất
             DB::commit();
 
-            // 7. Trả về thông tin (Eager Load)
             $doctor->load('user', 'specialty'); // Tải lại thông tin mới nhất
 
             return response()->json([
@@ -166,7 +192,7 @@ class DoctorManagementController extends Controller
             // 'image' = Phải là file ảnh
             // 'mimes' = Chỉ cho phép các định dạng này
             // 'max:2048' = Tối đa 2MB (2048 KB)
-            'imageURL' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'imageURL' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240'
         ]);
 
         // 2. Tìm Bác sĩ
@@ -193,7 +219,7 @@ class DoctorManagementController extends Controller
             'message' => 'Tải ảnh lên thành công!',
             // Storage::url($path) sẽ tự động tạo URL đầy đủ
             // ví dụ: 'http://127.0.0.1:8000/storage/uploads/doctors/abc.jpg'
-            'image_url' => Storage::url($path) 
+            'image_url' => Storage::url($path)
         ], 200);
     }
     /**
@@ -204,8 +230,8 @@ class DoctorManagementController extends Controller
     {
         // 1. Tìm User có UserID = $id VÀ Role là 'BacSi'
         $user = User::where('UserID', $id)
-                    ->where('Role', 'BacSi')
-                    ->first(); // Dùng first() thay vì findOrFail()
+            ->where('Role', 'BacSi')
+            ->first(); // Dùng first() thay vì findOrFail()
 
         // 2. Kiểm tra xem có tìm thấy Bác sĩ không
         if (!$user) {
@@ -215,7 +241,7 @@ class DoctorManagementController extends Controller
         // 3. (Logic nâng cao: Kiểm tra xem Bác sĩ này
         // có đang liên quan đến Lịch hẹn (Appointments) nào không
         // (Mặc dù 'onDelete' sẽ xử lý, nhưng báo lỗi cho Admin thì tốt hơn)
-        
+
         // if ($user->doctorProfile->appointments()->count() > 0) {
         //     return response()->json(['message' => 'Không thể xoá, Bác sĩ này vẫn còn lịch hẹn.'], 422);
         // }

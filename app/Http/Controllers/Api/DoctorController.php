@@ -4,9 +4,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use Illuminate\Http\Request;
 use App\Models\Doctor;
 use App\Models\DoctorAvailability;
+use App\Models\MedicalRecord;
+use App\Models\User;
 use Carbon\Carbon;
 
 class DoctorController extends Controller
@@ -17,11 +20,10 @@ class DoctorController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Doctor::with([
-            'user:UserID,FullName',
-            'specialty:SpecialtyID,SpecialtyName',
-        ]);
+        // Query chung
+        $query = Doctor::with(['user', 'specialty']);
 
+        // Tìm theo tên
         if ($request->filled('name')) {
             $search = $request->name;
             $query->whereHas('user', function ($q) use ($search) {
@@ -29,12 +31,22 @@ class DoctorController extends Controller
             });
         }
 
+        // Lọc theo chuyên khoa
         if ($request->filled('specialty_id')) {
             $query->where('SpecialtyID', $request->specialty_id);
         }
 
+        // Tìm theo tên (search)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('FullName', 'like', "%{$search}%");
+            });
+        }
+
         $doctors = $query->get();
 
+        // Format lại dữ liệu
         $formattedDoctors = $doctors->map(function ($doctor) {
             return [
                 'DoctorID'    => $doctor->DoctorID,
@@ -49,39 +61,30 @@ class DoctorController extends Controller
     }
 
     /**
-     * [API 2]: Lấy lịch khám khả dụng của Bác sĩ theo ID
+     * [API 2]: Lấy lịch khám khả dụng của 1 bác sĩ
      * Endpoint: GET /api/doctors/{id}/availability
      */
-    public function getAvailability(Request $request, $doctorId)
+    public function getAvailability(Request $request, $id)
     {
-        $slots = DoctorAvailability::where('DoctorID', $doctorId)
+        $date = $request->input('date');
+
+        $query = Doctor::findOrFail($id)
+            ->availabilitySlots()
             ->where('Status', 'Available')
-            ->where('StartTime', '>=', Carbon::now()->startOfDay())
-            ->orderBy('StartTime', 'asc')
-            ->get();
+            ->where('StartTime', '>', Carbon::now());
 
-        $groupedSlots = $slots->groupBy(function ($item) {
-            return Carbon::parse($item->StartTime)->format('Y-m-d');
-        })->map(function ($daySlots, $date) {
-            $dateObject = Carbon::parse($date);
+        // Nếu có chọn ngày thì lọc theo ngày
+        if ($date) {
+            $query->whereDate('StartTime', $date);
+        }
 
-            return [
-                'date'      => $date,
-                'dayOfWeek' => $dateObject->locale('vi')->dayName,
-                'slots'     => $daySlots->map(function ($slot) {
-                    return [
-                        'SlotID'    => $slot->SlotID,
-                        'StartTime' => Carbon::parse($slot->StartTime)->format('H:i'),
-                    ];
-                })->values(),
-            ];
-        })->values();
+        $availableSlots = $query->orderBy('StartTime', 'asc')->get();
 
-        return response()->json($groupedSlots, 200, [], JSON_UNESCAPED_UNICODE);
+        return response()->json($availableSlots, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     /* =========================================================
-     *                  CRUD CHO BÁC SĨ
+     *                      CRUD CHO BÁC SĨ
      * ========================================================= */
 
     /**
@@ -111,12 +114,24 @@ class DoctorController extends Controller
     }
 
     /**
-     * [API 4]: Cập nhật bác sĩ
+     * [API 4]: Lấy chi tiết bác sĩ
+     * GET /api/doctors/{id}
+     */
+    public function show($id)
+    {
+        $doctor = Doctor::with(['user', 'specialty'])->findOrFail($id);
+
+        return response()->json($doctor);
+    }
+
+    /**
+     * [API 5]: Cập nhật bác sĩ
      * PUT /api/doctors/{id}
      */
     public function update(Request $request, $id)
     {
         $doctor = Doctor::find($id);
+
         if (!$doctor) {
             return response()->json(['message' => 'Không tìm thấy bác sĩ'], 404);
         }
@@ -135,7 +150,7 @@ class DoctorController extends Controller
     }
 
     /**
-     * [API 5]: Xóa bác sĩ
+     * [API 6]: Xóa bác sĩ
      * DELETE /api/doctors/{id}
      */
     public function destroy($id)

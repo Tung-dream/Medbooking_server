@@ -20,7 +20,7 @@ class ServiceController extends Controller
             'Description' => 'nullable|string',
             'EstimatedDuration' => 'required|integer|min:0',
             'Price' => 'required|numeric|min:0',
-            'imageURL' => 'nullable|image|max:2048',
+            'imageURL' => 'nullable|image|max:10240',
         ]);
 
         $path = null;
@@ -54,7 +54,7 @@ class ServiceController extends Controller
             'Description' => 'nullable|string',
             'EstimatedDuration' => 'required|integer|min:0',
             'Price' => 'required|numeric|min:0',
-            'imageURL' => 'nullable|image|max:2048',
+            'imageURL' => 'nullable|image|max:10240',
         ]);
 
         if ($request->hasFile('imageURL')) {
@@ -83,9 +83,9 @@ class ServiceController extends Controller
     public function destroy($id)
     {
         $service = Service::findOrFail($id);
-        
+
         if ($service->appointments()->count() > 0) {
-             return response()->json(['message' => 'Không thể xoá dịch vụ này, đang có lịch hẹn.'], 422);
+            return response()->json(['message' => 'Không thể xoá dịch vụ này, đang có lịch hẹn.'], 422);
         }
 
         if ($service->imageURL) {
