@@ -194,7 +194,7 @@ class DoctorManagementController extends Controller
         ], 200);
     }
     /**
-     * HÀM MỚI: Admin Xóa một Bác sĩ (cả User và Doctor profile).
+     * Admin Xóa một Bác sĩ (cả User và Doctor profile).
      * Chạy khi gọi DELETE /api/admin/doctors/{id}
      */
     public function destroy($id)
@@ -208,10 +208,6 @@ class DoctorManagementController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Không tìm thấy Bác sĩ với ID này.'], 404);
         }
-
-        // 3. (Logic nâng cao: Kiểm tra xem Bác sĩ này
-        // có đang liên quan đến Lịch hẹn (Appointments) nào không
-        // (Mặc dù 'onDelete' sẽ xử lý, nhưng báo lỗi cho Admin thì tốt hơn)
 
         // if ($user->doctorProfile->appointments()->count() > 0) {
         //     return response()->json(['message' => 'Không thể xoá, Bác sĩ này vẫn còn lịch hẹn.'], 422);

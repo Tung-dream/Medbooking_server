@@ -46,18 +46,7 @@ class DoctorController extends Controller
 
         $doctors = $query->get();
 
-        // Format lại dữ liệu
-        $formattedDoctors = $doctors->map(function ($doctor) {
-            return [
-                'DoctorID' => $doctor->DoctorID,
-                'FullName' => $doctor->user->FullName ?? 'N/A',
-                'Degree' => $doctor->Degree,
-                'Description' => $doctor->Description,
-                'Specialty' => $doctor->specialty->SpecialtyName ?? 'Chưa xác định',
-            ];
-        });
-
-        return response()->json($formattedDoctors, 200, [], JSON_UNESCAPED_UNICODE);
+        return response()->json($doctors, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
