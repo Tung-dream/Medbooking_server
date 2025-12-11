@@ -36,9 +36,12 @@ class Feedback extends Model
      */
     public function appointment()
     {
-        return $this->belongsTo(Appointment::class, 'AppointmentID');
+        return $this->belongsTo(Appointment::class, 'AppointmentID', 'AppointmentID');
     }
-
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'PatientID', 'UserID');
+    }
     /**
      * Lưu ý: Chúng ta sẽ xử lý 'TargetType' và 'TargetID' 
      * sau này khi cần. Đây là một mối quan hệ "linh hoạt" (Polymorphic), 

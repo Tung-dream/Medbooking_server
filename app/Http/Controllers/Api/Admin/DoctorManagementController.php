@@ -15,20 +15,18 @@ use Illuminate\Support\Facades\Storage;
 class DoctorManagementController extends Controller
 {
     /**
-     * Admin tạo một Bác sĩ mới (bao gồm User và Doctor profile).
-     * Chạy khi gọi POST /api/admin/doctors
+     * Admin tạo một Bác sĩ mới
+     * POST /api/admin/doctors
      */
     public function store(Request $request)
     {
-        // 1. Validate (Kiểm tra) dữ liệu Admin gửi lên
+        // 1. Validate
         $request->validate([
-            // Dữ liệu cho bảng User
             'FullName' => 'required|string|max:255',
             'Username' => 'required|string|max:100|unique:users',
             'PhoneNumber' => 'required|string|max:15|unique:users',
+            'Email' => 'required|email|max:255|unique:users',
             'password' => 'required|string|min:6',
-
-            // Dữ liệu cho bảng Doctor
             'SpecialtyID' => 'required|integer|exists:specialties,SpecialtyID',
             'Degree' => 'required|string|max:100',
             'YearsOfExperience' => 'required|integer|min:0',
@@ -36,147 +34,120 @@ class DoctorManagementController extends Controller
             'imageURL' => 'nullable|image|max:10240',
         ]);
 
-        // 2. Bắt đầu Transaction
         try {
             DB::beginTransaction();
 
-            // 3. TẠO USER (với Role 'BacSi')
+            // 2. Tạo User
             $user = new User();
             $user->FullName = $request->FullName;
             $user->Username = $request->Username;
             $user->PhoneNumber = $request->PhoneNumber;
             $user->password = Hash::make($request->password);
-            $user->Role = 'BacSi'; // <-- Chỉ định Role
+            $user->Email = $request->Email;
+            $user->Role = 'BacSi';
             $user->Status = 'HoatDong';
-            $user->save(); // Lưu User để lấy UserID
+            $user->save();
 
-            // 4. TẠO DOCTOR (dùng UserID vừa tạo)
+            // 3. Tạo Doctor
             $doctor = new Doctor();
-            $doctor->DoctorID = $user->UserID; // <-- Liên kết 1-1
+            $doctor->DoctorID = $user->UserID;
             $doctor->SpecialtyID = $request->SpecialtyID;
             $doctor->Degree = $request->Degree;
             $doctor->YearsOfExperience = $request->YearsOfExperience;
             $doctor->ProfileDescription = $request->ProfileDescription;
-            $doctor->imageURL = $request->imageURL;
+
+            // Lưu có /storage/ vào DB
+            if ($request->hasFile('imageURL')) {
+                $path = $request->file('imageURL')->store('uploads/doctors', 'public');
+                //Dùng Storage::url để lấy đường dẫn public (/storage/uploads/...)
+                $doctor->imageURL = Storage::url($path);
+            }
+
             $doctor->save();
 
-            // 5. Hoàn tất
             DB::commit();
-
-            // 6. Trả về thông tin (Eager Load)
-            $doctor->load('user', 'specialty'); // Tải thông tin user, specialty
 
             return response()->json([
                 'message' => 'Tạo hồ sơ Bác sĩ thành công!',
-                'doctor' => $doctor
-            ], 201); // 201 Created
+                'doctor' => $doctor->load('user', 'specialty')
+            ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'message' => 'Lỗi máy chủ, không thể tạo Bác sĩ.',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['message' => 'Lỗi tạo bác sĩ', 'error' => $e->getMessage()], 500);
         }
     }
 
-    //api update bac si, chay khi goi PUT /api/admin/doctors/{id}
+    /**
+     * Cập nhật Bác sĩ
+     * PUT /api/admin/doctors/{id}
+     */
     public function update(Request $request, $id)
     {
-        // 1. Tìm Bác sĩ (DoctorID) và User liên quan
         $doctor = Doctor::findOrFail($id);
-        $user = $doctor->user; // Lấy user qua mối quan hệ
+        $user = $doctor->user;
 
-        // 2. Validate (Kiểm tra) dữ liệu Admin gửi lên
         $request->validate([
-            // Dữ liệu cho bảng User
             'FullName' => 'required|string|max:255',
-            'Username' => [
-                'required',
-                'string',
-                'max:100',
-                Rule::unique('users')->ignore($user->UserID, 'UserID')
-            ],
-            'PhoneNumber' => [
-                'required',
-                'string',
-                'max:15',
-                Rule::unique('users')->ignore($user->UserID, 'UserID')
-            ],
-            'Email' => [
-                'required',
-                'email',
-                Rule::unique('users', 'Email')->ignore($user->UserID, 'UserID')
-            ],
-
-            // Dữ liệu cho bảng Doctor
+            'Username' => ['required', Rule::unique('users')->ignore($user->UserID, 'UserID')],
+            'PhoneNumber' => ['required', Rule::unique('users')->ignore($user->UserID, 'UserID')],
+            'Email' => ['required', 'email', Rule::unique('users', 'Email')->ignore($user->UserID, 'UserID')],
             'SpecialtyID' => 'required|integer|exists:specialties,SpecialtyID',
             'Degree' => 'required|string|max:100',
             'YearsOfExperience' => 'required|integer|min:0',
-            'ProfileDescription' => 'nullable|string',
             'imageURL' => 'nullable',
         ]);
 
-        // 3. Bắt đầu Transaction (vì cập nhật 2 bảng)
         try {
             DB::beginTransaction();
 
-            // 4. Cập nhật bảng User
+            // Cập nhật User
             $user->FullName = $request->FullName;
             $user->Username = $request->Username;
             $user->PhoneNumber = $request->PhoneNumber;
             $user->Email = $request->Email;
-
-            if ($request->filled('password')) {
+            if ($request->filled('password'))
                 $user->password = Hash::make($request->password);
-            }
-
-            if ($request->has('Status')) {
+            if ($request->has('Status'))
                 $user->Status = $request->Status;
-            }
-
             $user->save();
 
+            // Cập nhật Doctor
             $doctor->SpecialtyID = $request->SpecialtyID;
             $doctor->Degree = $request->Degree;
             $doctor->YearsOfExperience = $request->YearsOfExperience;
             $doctor->ProfileDescription = $request->ProfileDescription;
 
+            // XỬ LÝ ẢNH
             if ($request->hasFile('imageURL')) {
-
-                // Validate file ảnh
-                $request->validate([
-                    'imageURL' => 'image|mimes:jpeg,png,jpg,gif|max:10240'
-                ]);
-
-                // Xóa ảnh cũ nếu có và file tồn tại
-                if ($doctor->imageURL && Storage::disk('public')->exists($doctor->imageURL)) {
-                    Storage::disk('public')->delete($doctor->imageURL);
+                // A. Xóa ảnh cũ
+                if ($doctor->imageURL) {
+                    // Vì trong DB đã lưu có /storage/, ta replace đi để lấy path gốc xóa file
+                    $oldPath = str_replace('/storage/', '', $doctor->imageURL);
+                    if (Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
                 }
 
-                // Lưu ảnh mới vào 'storage/app/public/uploads/doctors'
+                // B. Lưu ảnh mới
                 $path = $request->file('imageURL')->store('uploads/doctors', 'public');
 
-                $doctor->imageURL = $path;
+                // C. Lưu vào DB (có /storage/)
+                $doctor->imageURL = Storage::url($path);
             }
 
             $doctor->save();
 
             DB::commit();
 
-            $doctor->load('user', 'specialty'); // Tải lại thông tin mới nhất
-
             return response()->json([
                 'message' => 'Cập nhật hồ sơ Bác sĩ thành công!',
-                'doctor' => $doctor
-            ], 200); // 200 OK
+                'doctor' => $doctor->load('user', 'specialty')
+            ], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'message' => 'Lỗi máy chủ, không thể cập nhật Bác sĩ.',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['message' => 'Lỗi cập nhật', 'error' => $e->getMessage()], 500);
         }
     }
 

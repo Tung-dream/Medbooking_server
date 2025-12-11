@@ -14,22 +14,52 @@ class FeedbackController extends Controller
      */
     public function index()
     {
-        $feedbacks = Feedback::with(
-            'patient',
-            'target.user',
-            'appointment.doctor.user'
-        )
+        // Eager load 'user' (người gửi) và 'appointment.doctor.user' (bác sĩ được nhận xét)
+        $feedbacks = Feedback::with(['user', 'appointment.doctor.user'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json($feedbacks, 200, [], JSON_UNESCAPED_UNICODE);
+        $data = $feedbacks->map(function ($fb) {
+
+            $reviewerName = $fb->user ? $fb->user->FullName : 'Ẩn danh';
+            $reviewerAvatar = $fb->user ? $fb->user->avatar_url : null;
+
+            $targetName = 'Hệ thống';
+            $type = 'System';
+            //Phải đặt lịch mới có thể đánh giá bác sĩ
+            if ($fb->TargetType === 'Doctor' || $fb->AppointmentID) {
+                $type = 'Doctor';
+                // Cố gắng lấy tên bác sĩ
+                if ($fb->appointment && $fb->appointment->doctor && $fb->appointment->doctor->user) {
+                    $targetName = "BS. " . $fb->appointment->doctor->user->FullName;
+                } else {
+                    $targetName = "Bác sĩ (Đã ẩn)";
+                }
+            }
+
+            return [
+                'FeedbackID' => $fb->FeedbackID,
+                'Rating' => $fb->Rating,
+                'Comment' => $fb->Comment,
+                'CreatedAt' => $fb->created_at->format('d/m/Y H:i'),
+
+                // Thông tin người gửi (Đã hiện cho cả Hệ thống & Bác sĩ)
+                'ReviewerName' => $reviewerName,
+                'ReviewerAvatar' => $reviewerAvatar,
+
+                'TargetName' => $targetName,
+                'Type' => $type,
+            ];
+        });
+
+        return response()->json($data, 200, [], JSON_UNESCAPED_UNICODE);
     }
     public function getTopFeedbacks()
     {
         $feedbacks = Feedback::with('appointment.patient')
             ->where('Rating', 5)
             ->whereNotNull('Comment')
-            ->orderBy('create_at', 'desc')
+            ->orderBy('created_at', 'desc')
             ->limit(3)
             ->get();
         $data = $feedbacks->map(function ($fb) {
@@ -38,7 +68,6 @@ class FeedbackController extends Controller
                 'FeedbackID' => $fb->FeedbackID,
                 'Rating' => $fb->Rating,
                 'Comment' => $fb->Comment,
-                // SỬA Ở ĐÂY: Dùng đúng tên cột trong Database
                 'FullName' => $patient ? $patient->FullName : 'Ẩn danh',
                 'avatar_url' => $patient ? $patient->avatar_url : null,
             ];

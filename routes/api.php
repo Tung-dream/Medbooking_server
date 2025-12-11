@@ -192,19 +192,15 @@ Route::middleware(['auth:sanctum', 'role:QuanTriVien,NhanVien'])->prefix('admin'
     // Route cho bác sĩ đặt lịch tái khám
     Route::post('/doctor/appointments/follow-up', [AppointmentController::class, 'createFollowUp']);
     // === API QUẢN LÝ TÀI KHOẢN (MỚI) ===
-    // (Chúng ta dùng 'Resource' để tạo nhanh bộ CRUD)
-    // Nó sẽ tự động tạo:
-    // GET /api/admin/users -> hàm index() (Lấy danh sách, hỗ trợ tìm kiếm)
-    // GET /api/admin/users/{id} -> hàm show() (Lấy chi tiết 1 user)
-    // PUT /api/admin/users/{id} -> hàm update() (Cập nhật user)
-    // (Chúng ta sẽ không dùng 'store' và 'destroy' ở đây
-    // vì chúng ta đã có API tạo 'Patient' và 'Doctor' riêng)
+
     // API tạo User chung (cho Staff, Admin, hoặc Bệnh nhân nhanh)
     Route::post('/users', [UserManagementController::class, 'store']);
     Route::get('/users', [UserManagementController::class, 'index']);
     Route::get('/users/{id}', [UserManagementController::class, 'show']);
     Route::put('/users/{id}', [UserManagementController::class, 'update']);
     // === DỊCH VỤ ===
+    Route::get('/services', [AdminServiceController::class, 'index']);
+    Route::get('/services/{id}', [AdminServiceController::class, 'show']);
     Route::post('/services', [AdminServiceController::class, 'store']);
     Route::put('/services/{id}', [AdminServiceController::class, 'update']);
     Route::delete('/services/{id}', [AdminServiceController::class, 'destroy']);
@@ -214,6 +210,7 @@ Route::middleware(['auth:sanctum', 'role:QuanTriVien,NhanVien'])->prefix('admin'
     Route::get('/patients', [PatientController::class, 'index']);
     Route::get('/patients/{id}', [PatientController::class, 'show']);
     Route::get('/patients/{id}/history', [PatientController::class, 'getHistory']);
+    Route::put('/patients/{id}', [PatientController::class, 'update']);
     // === API QUẢN LÝ BỆNH ÁN (MỚI) ===
     // 1. Lấy danh sách / Tìm kiếm Bệnh án
     // URL: GET /api/admin/medical-records
@@ -227,6 +224,7 @@ Route::middleware(['auth:sanctum', 'role:QuanTriVien,NhanVien'])->prefix('admin'
     Route::post('/specialties', [AdminSpecialtyController::class, 'store']);
     Route::put('/specialties/{id}', [AdminSpecialtyController::class, 'update']);
     Route::delete('/specialties/{id}', [AdminSpecialtyController::class, 'destroy']);
+    Route::get('/feedbacks', [FeedbackController::class, 'index']);
 });
 
 

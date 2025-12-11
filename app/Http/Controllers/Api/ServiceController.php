@@ -25,7 +25,7 @@ class ServiceController extends Controller
             $query->where('ServiceName', 'like', '%' . $searchTerm . '%');
         }
 
-        $query->orderBy('created_at', 'desc');
+        $query->orderBy('ServiceID', 'desc');
 
         $services = $query->get();
 
