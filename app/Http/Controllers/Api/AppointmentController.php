@@ -477,9 +477,29 @@ class AppointmentController extends Controller
 
         return response()->json(['message' => 'Cảm ơn bạn đã góp ý cho hệ thống!']);
     }
-
-
+    /**
+     * Cập nhật trạng thái lịch hẹn(CheckedIn -> InProgress -> Completed)
+     */
     public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'Status' => 'required|in:InProgress,Completed,Cancelled'
+        ]);
+        $user = $request->user();
+        //Tìm lịch hẹn phải đúng là của bác sĩ A
+        $appointment = Appointment::where('AppoinmentID', $id)
+            ->where('DoctorID', $user->doctor->DoctorID)
+            ->first();
+        if (!$appointment) {
+            return response()->json(['message' => 'Lịch hẹn không tồn tại hoặc bạn không có quyền.'], 404);
+        }
+
+        //Cập nhật trạng thái
+        $oldStatus = $appointment->Status;
+        $appointment->Status = $request->Status;
+        $appointment->save();
+
+public function updateStatus(Request $request, $id)
 {
     $request->validate([
         'Status' => 'required|in:confirmed,in_progress,completed,cancelled'
@@ -494,4 +514,4 @@ class AppointmentController extends Controller
         'data' => $appointment
     ]);
 }
-}
+    }

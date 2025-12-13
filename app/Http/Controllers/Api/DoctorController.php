@@ -86,26 +86,25 @@ class DoctorController extends Controller
     try {
         $user = Auth::user();
         
-        // ✅ VALIDATION với snake_case (ĐÚNG với front-end)
         $validated = $request->validate([
-            'full_name' => 'required|string|max:255',           // 'full_name' thay vì 'fullName'
-            'phone' => 'nullable|string|max:20',                // OK
-            'specialty_id' => 'nullable|integer|exists:specialties,SpecialtyID', // 'specialty_id' thay vì 'SpecialtyID'
-            'degree' => 'nullable|string|max:100',              // OK
-            'years_of_experience' => 'nullable|integer|min:0',  // OK
-            'profile_description' => 'nullable|string',         // OK
+            'full_name' => 'required|string|max:255',         
+            'phone' => 'nullable|string|max:20',                
+            'specialty_id' => 'nullable|integer|exists:specialties,SpecialtyID', 
+            'degree' => 'nullable|string|max:100',              
+            'years_of_experience' => 'nullable|integer|min:0',  
+            'profile_description' => 'nullable|string',         
         ]);
         
         // ✅ Cập nhật User
         $user->update([
-            'FullName' => $validated['full_name'],              // Map 'full_name' → 'FullName'
+            'FullName' => $validated['full_name'],            
             'PhoneNumber' => $validated['phone'] ?? $user->PhoneNumber,
         ]);
         
         // ✅ Cập nhật Doctor
         if ($user->doctorProfile) {
             $doctorData = [
-                'SpecialtyID' => $validated['specialty_id'] ?? null,  // Map 'specialty_id' → 'SpecialtyID'
+                'SpecialtyID' => $validated['specialty_id'] ?? null,  
                 'Degree' => $validated['degree'] ?? null,
                 'YearsOfExperience' => $validated['years_of_experience'] ?? null,
                 'ProfileDescription' => $validated['profile_description'] ?? null,
