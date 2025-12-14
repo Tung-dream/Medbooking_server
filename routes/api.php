@@ -28,17 +28,8 @@ use App\Http\Controllers\Api\Admin\PatientController;
 // Staff Controllers
 use App\Http\Controllers\Api\Staff\DashboardController as StaffDashboardController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-| - Public routes: không cần đăng nhập
-| - Protected routes: cần auth:sanctum
-| - Role routes: thêm middleware role:...
-*/
-
 // =======================================================
-// PUBLIC TEST ROUTES (KHÔNG CẦN ĐĂNG NHẬP)
+// PUBLIC TEST ROUTES 
 // =======================================================
 Route::get('/test-public', function () {
     return response()->json([
@@ -73,11 +64,10 @@ Route::get('/doctor/test-public', function () {
 });
 
 // =======================================================
-// PUBLIC ROUTES (KHÔNG CẦN ĐĂNG NHẬP)
+// PUBLIC ROUTES 
 // =======================================================
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login',    [AuthController::class, 'login']);
-
+Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/specialties', [SpecialtyController::class, 'index']);
 Route::get('/specialties/{id}', [SpecialtyController::class, 'show']);
 Route::get('/specialties/{id}/availability', [SpecialtyController::class, 'getAvailability']);
@@ -111,12 +101,12 @@ Route::get('/health', function () {
 });
 
 // =======================================================
-// PROTECTED ROUTES (CẦN ĐĂNG NHẬP)
+// PROTECTED ROUTES 
 // =======================================================
 Route::middleware('auth:sanctum')->group(function () {
 
     // -----------------------------
-    // CURRENT USER (frontend hay gọi)
+    // CURRENT USER 
     // -----------------------------
     Route::get('/user', function (Request $request) {
         return response()->json([
@@ -160,8 +150,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/upload-avatar', [AuthController::class, 'uploadAvatar']);
 
     // ===================================================
-    // BÁC SĨ (CHỈ ROLE Doctor)
-    // URL: /api/doctor/...
+    // BÁC SĨ 
     // ===================================================
     Route::middleware('role:Doctor')->prefix('doctor')->group(function () {
 
@@ -244,7 +233,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===================================================
     Route::middleware('role:NhanVien')->prefix('staff')->group(function () {
         Route::get('/dashboard-stats', [StaffDashboardController::class, 'index']);
-        Route::get('/pending-appointments', [AppointmentController::class, 'getPendingAppointments']);
+        Route::get('/pending-appointments', function () {
+    return response()->json([]); // Luôn trả về array rỗng
+});
         Route::post('/appointments', [AppointmentController::class, 'staffCreateAppointment']);
         Route::patch('/appointments/{id}/confirm', [AppointmentController::class, 'confirmAppointment']);
         Route::put('/appointments/{id}', [AppointmentController::class, 'staffUpdateAppointment']);

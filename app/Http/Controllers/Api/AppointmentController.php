@@ -32,6 +32,7 @@ class AppointmentController extends Controller
 
         return response()->json($appointments, 200, [], JSON_UNESCAPED_UNICODE);
     }
+
     /**
      * Bác sĩ tạo lịch Tái khám cho bệnh nhân
      * POST /api/doctor/appointments/follow-up
@@ -398,6 +399,35 @@ class AppointmentController extends Controller
      * HÀM MỚI (Doctor): Lấy chi tiết 1 lịch hẹn.
      * Chạy khi gọi GET /api/doctor/appointments/{id}
      */
+
+    public function getPendingAppointments(Request $request)
+{
+    try {
+        $appointments = Appointment::with([
+                'patient' => function($query) {
+                    $query->select('UserID', 'FullName', 'PhoneNumber', 'Email', 'DateOfBirth', 'Gender');
+                },
+                'doctor.user' => function($query) {
+                    $query->select('UserID', 'FullName');
+                },
+                'service' => function($query) {
+                    $query->select('ServiceID', 'ServiceName');
+                }
+            ])
+            ->where('Status', 'Pending')
+            ->orderBy('StartTime', 'asc')
+            ->get();
+
+        return response()->json($appointments, 200);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
     public function doctorShowAppointment(Request $request, $id)
     {
         $doctor = $request->user()->doctorProfile;

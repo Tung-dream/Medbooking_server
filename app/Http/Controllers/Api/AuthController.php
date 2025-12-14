@@ -48,13 +48,22 @@ class AuthController extends Controller
         'email' => 'required|string',
         'password' => 'required|string',
     ]);
-    $user = User::where('Email', $request->email)->orWhere('Username', $request->email)->first();
+    
+    $user = User::where('Email', $request->email)
+                ->orWhere('Username', $request->email)
+                ->first();
+    
     if (!$user) {
         return response()->json(['message' => 'Sai tài khoản hoặc mật khẩu'], 401);
     }
-
+    
+    // PHẢI CÓ DÒNG NÀY
+    if (!Hash::check($request->password, $user->password)) {
+        return response()->json(['message' => 'Sai tài khoản hoặc mật khẩu'], 401);
+    }
+    
     $token = $user->createToken('auth_token')->plainTextToken;
-
+    
     return response()->json([
         'success' => true,
         'user' => $user->toApiArray(),
